@@ -1,0 +1,58 @@
+name: wanderline
+
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${WANDERLINE_DB_NAME:-wanderline}
+      POSTGRES_USER: ${WANDERLINE_DB_USER:-wanderline}
+      POSTGRES_PASSWORD: ${WANDERLINE_DB_PASSWORD:-wanderline-local}
+    ports:
+      - "${WANDERLINE_DB_PORT:-5432}:5432"
+    volumes:
+      - wanderline-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WANDERLINE_DB_USER:-wanderline} -d ${WANDERLINE_DB_NAME:-wanderline}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      WANDERLINE_DB_URL: jdbc:postgresql://database:5432/${WANDERLINE_DB_NAME:-wanderline}
+      WANDERLINE_DB_USERNAME: ${WANDERLINE_DB_USER:-wanderline}
+      WANDERLINE_DB_PASSWORD: ${WANDERLINE_DB_PASSWORD:-wanderline-local}
+      WANDERLINE_CORS_ALLOWED_ORIGINS: http://localhost:${WANDERLINE_FRONTEND_PORT:-4173},http://127.0.0.1:${WANDERLINE_FRONTEND_PORT:-4173},http://localhost:5173,http://127.0.0.1:5173
+      GOOGLE_MAPS_SERVER_API_KEY: ${GOOGLE_MAPS_SERVER_API_KEY:-}
+      WANDERLINE_MAP_REQUEST_TIMEOUT: ${WANDERLINE_MAP_REQUEST_TIMEOUT:-PT12S}
+    ports:
+      - "${WANDERLINE_SERVER_PORT:-8080}:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+        VITE_GOOGLE_MAPS_MAP_ID: ${VITE_GOOGLE_MAPS_MAP_ID:-}
+    ports:
+      - "${WANDERLINE_FRONTEND_PORT:-4173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  wanderline-postgres:

@@ -1,0 +1,14 @@
+ALTER TABLE trip_plans ADD COLUMN timezone VARCHAR(80) NOT NULL DEFAULT 'UTC';
+ALTER TABLE route_points ADD COLUMN custom_name VARCHAR(200);
+ALTER TABLE route_points ADD COLUMN note VARCHAR(2000);
+ALTER TABLE route_points ADD COLUMN arrival_time VARCHAR(5);
+ALTER TABLE route_points ADD COLUMN departure_time VARCHAR(5);
+ALTER TABLE route_points DROP COLUMN name;
+ALTER TABLE route_points DROP COLUMN formatted_address;
+ALTER TABLE route_points DROP COLUMN latitude;
+ALTER TABLE route_points DROP COLUMN longitude;
+ALTER TABLE navigation_selections DROP COLUMN option_id;
+ALTER TABLE navigation_selections DROP COLUMN route_payload;
+ALTER TABLE navigation_selections ADD COLUMN departure_time VARCHAR(5);
+ALTER TABLE navigation_selections ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'PLANNED';
+ALTER TABLE route_points DROP CONSTRAINT route_points_route_place_unique;
