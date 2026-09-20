@@ -49,6 +49,7 @@ function App() {
   const [routeForm, setRouteForm] = useState<DailyRoute | null | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null)
   const [siteInformation, setSiteInformation] = useState<SiteInformationKind | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const refreshSummaries = useCallback(async () => {
     const nextPlans = await api.listTripPlans()
@@ -288,11 +289,16 @@ function App() {
         </div>
       )}
 
-      <main className="planner-layout" id="top">
+      <main
+        className={`planner-layout${sidebarCollapsed ? ' planner-layout--sidebar-collapsed' : ''}`}
+        id="top"
+      >
         <PlanSidebar
           plans={plans}
           selectedPlanId={selectedPlanId}
           loading={loading}
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)}
           onCreate={() => openPlanForm('create')}
           onSelect={(planId) => void selectPlan(planId)}
         />

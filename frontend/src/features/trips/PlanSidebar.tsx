@@ -5,6 +5,8 @@ interface PlanSidebarProps {
   plans: TripPlanSummary[]
   selectedPlanId: number | null
   loading: boolean
+  collapsed: boolean
+  onToggle: () => void
   onCreate: () => void
   onSelect: (planId: number) => void
 }
@@ -13,11 +15,24 @@ export function PlanSidebar({
   plans,
   selectedPlanId,
   loading,
+  collapsed,
+  onToggle,
   onCreate,
   onSelect,
 }: PlanSidebarProps) {
   return (
-    <aside className="plan-sidebar">
+    <aside className={`plan-sidebar${collapsed ? ' plan-sidebar--collapsed' : ''}`}>
+      <button
+        className="sidebar-toggle"
+        type="button"
+        onClick={onToggle}
+        aria-controls="trip-plan-list"
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? '展开我的旅程' : '收起我的旅程'}
+      >
+        <span aria-hidden="true">{collapsed ? '›' : '‹'}</span>
+      </button>
+      <span className="sidebar-rail-mark" aria-hidden="true">WL</span>
       <div className="sidebar-heading">
         <div>
           <p>Travel archive</p>
@@ -28,7 +43,7 @@ export function PlanSidebar({
         </button>
       </div>
 
-      <div className="plan-list" aria-label="旅游计划列表">
+      <div className="plan-list" id="trip-plan-list" aria-label="旅游计划列表">
         {loading && plans.length === 0 && (
           <div className="sidebar-loading" aria-label="正在读取旅游计划">
             <span />

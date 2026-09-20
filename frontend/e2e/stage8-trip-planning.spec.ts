@@ -531,6 +531,53 @@ test('正式版外壳：品牌、帮助、法律入口、键盘焦点与移动�
   await expect(page.getByRole('button', { name: /返回按日编辑/ })).toBeVisible()
 })
 
+test('旅程菜单：桌面收起后悬停临时展开，移开后恢复收起', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/')
+
+  const sidebar = page.locator('.plan-sidebar')
+  const workspace = page.locator('.workspace-panel')
+  const collapseButton = sidebar.getByRole('button', { name: '收起我的旅程' })
+  await expect(collapseButton).toHaveAttribute('aria-expanded', 'true')
+
+  await collapseButton.click()
+  const expandButton = sidebar.getByRole('button', { name: '展开我的旅程' })
+  await expect(expandButton).toHaveAttribute('aria-expanded', 'false')
+  await page.mouse.move(1100, 500)
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeLessThanOrEqual(73)
+  const collapsedWorkspaceX = (await workspace.boundingBox())!.x
+
+  await sidebar.hover()
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThanOrEqual(317)
+  expect((await workspace.boundingBox())!.x).toBeCloseTo(collapsedWorkspaceX, 0)
+
+  await page.mouse.move(1100, 500)
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeLessThanOrEqual(73)
+
+  await expandButton.click()
+  await page.mouse.move(1100, 500)
+  await expect(sidebar.getByRole('button', { name: '收起我的旅程' })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  )
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThanOrEqual(317)
+})
+
+test('旅程菜单：移动端可手动收起并保留标题栏', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+
+  const sidebar = page.locator('.plan-sidebar')
+  await sidebar.getByRole('button', { name: '收起我的旅程' }).click()
+
+  await expect(sidebar.getByRole('heading', { name: '我的旅程' })).toBeVisible()
+  await expect(sidebar.locator('.plan-list')).toBeHidden()
+  await expect(sidebar.getByRole('button', { name: '展开我的旅程' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  )
+})
+
 test('阶段 8：三日计划、实时导航、总览与 Pin 变更', async ({ page }) => {
   await installGoogleMapsMock(page)
   await installRouteOptionsMock(page)
