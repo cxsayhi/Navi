@@ -1,6 +1,6 @@
 # Rectify 架构对齐验收
 
-验收日期：2026-09-19。需求来源：`temp/rectify.md`。
+验收日期：2026-09-20。需求来源：`temp/rectify.md` 与 `temp/go-live-readiness.md`。
 
 ## 设计核对
 
@@ -28,7 +28,8 @@
 - PostgreSQL 17：在独立数据库 wanderline_rectify_check 中从真实 V4 备份恢复，Flyway V5 升级通过。
 - `node scripts/check-rectify-migration.mjs`：实际 PostgreSQL 排序、跨日 ID 保留、重复到访、用户字段及选择性路段失效通过。脚本仅指向 8083 迁移检查服务。
 - 前端：生产构建与 ESLint 检查通过。
-- Chrome E2E：7 项全部通过；覆盖三日计划、地点搜索、键盘拖拽、排序失败、三种交通方式、滚动式时分选择、当前编辑器不保存交通偏好、服务异常、时区/地点时间及跨日移动。
+- Chrome E2E：8 项全部通过；覆盖正式版品牌与法律入口、移动布局、三日计划、地点搜索、键盘拖拽、排序失败、三种交通方式、滚动式时分选择、当前编辑器不保存交通偏好、服务异常、时区/地点时间及跨日移动。
+- Safari 人工验收：正式品牌、`READY TO GO`、1.0.0、帮助弹窗与反馈入口正常；Escape 关闭弹窗后焦点返回触发按钮。
 - E2E 使用 8082/5174 与 H2；Google SDK 与 Routes 使用测试替身，不读写用户 PostgreSQL，也不消耗真实 Google 配额。
 - Docker 后端构建执行 `mvn package`（包含测试），前端构建运行 TypeScript 与 Vite。
 - 实际 Docker 部署完成：后端与 PostgreSQL 健康，前端运行；正式数据库 V1–V5 均成功，1 个计划、13 天和当前 3 个地点保留。

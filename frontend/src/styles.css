@@ -29,14 +29,14 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --ink: #24231f;
-  --muted-ink: #747066;
+  --muted-ink: #635f56;
   --paper: #eee6d7;
   --paper-light: #faf5ea;
   --paper-deep: #e2d6c3;
   --line: rgba(36, 35, 31, 0.18);
   --line-strong: rgba(36, 35, 31, 0.42);
-  --accent: #e95f43;
-  --accent-dark: #b93f2b;
+  --accent: #b03a27;
+  --accent-dark: #8f2d1f;
   --moss: #334d41;
   --moss-dark: #273c33;
   --moss-light: #c9d0c0;
@@ -79,7 +79,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 summary:focus-visible {
-  outline: 3px solid rgba(233, 95, 67, 0.38);
+  outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -140,7 +140,7 @@ button:disabled {
   letter-spacing: 0.18em;
 }
 
-.header-stage {
+.header-edition {
   display: flex;
   gap: 11px;
   align-items: center;
@@ -149,7 +149,7 @@ button:disabled {
   letter-spacing: 0.16em;
 }
 
-.header-stage strong {
+.header-edition strong {
   color: var(--ink);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
@@ -1113,6 +1113,85 @@ button:disabled {
   border-bottom: 1px solid var(--line-strong);
 }
 
+.site-information {
+  padding: 30px;
+  color: var(--ink);
+}
+
+.site-information-lead {
+  max-width: 580px;
+  margin: 0 0 28px;
+  font-family: "Iowan Old Style", "Songti SC", serif;
+  font-size: 23px;
+  line-height: 1.55;
+}
+
+.help-steps {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.help-steps li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 16px;
+  padding: 19px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.help-steps li > span {
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.help-steps strong {
+  font-family: "Iowan Old Style", "Songti SC", serif;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.help-steps p,
+.legal-copy p {
+  margin: 7px 0 0;
+  color: var(--muted-ink);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.site-information a {
+  color: var(--accent-dark);
+  text-underline-offset: 3px;
+}
+
+.site-information-contact {
+  margin: 26px 0 0;
+  font-size: 11px;
+}
+
+.legal-copy {
+  padding-top: 24px;
+}
+
+.legal-copy h3 {
+  margin: 26px 0 0;
+  font-family: "Iowan Old Style", "Songti SC", serif;
+  font-size: 18px;
+}
+
+.legal-copy .legal-updated {
+  margin-top: 0;
+  color: var(--accent-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
 .icon-button {
   display: grid;
   width: 34px;
@@ -1396,17 +1475,55 @@ button:disabled {
 
 .site-footer {
   display: flex;
+  gap: 24px;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 23px 2px 34px;
   border-top: 1px solid var(--line-strong);
   color: var(--muted-ink);
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 10px;
 }
 
-.site-footer p {
-  margin: 0;
+.footer-identity {
+  display: grid;
+  gap: 6px;
+}
+
+.footer-identity strong {
+  color: var(--ink);
+  font-family: "Iowan Old Style", "Songti SC", serif;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.footer-identity span {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.footer-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  justify-content: flex-end;
+}
+
+.footer-navigation button,
+.footer-navigation a {
+  padding: 2px 0;
+  border: 0;
+  color: var(--muted-ink);
+  background: transparent;
+  cursor: pointer;
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.footer-navigation button:hover,
+.footer-navigation a:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .trip-cover--planner {
@@ -3568,7 +3685,7 @@ button:disabled {
   }
 
   .brand small,
-  .header-stage {
+  .header-edition {
     display: none;
   }
 
@@ -3908,9 +4025,16 @@ button:disabled {
   }
 
   .site-footer {
-    gap: 8px;
-    align-items: flex-start;
+    gap: 18px;
     flex-direction: column;
+  }
+
+  .footer-navigation {
+    justify-content: flex-start;
+  }
+
+  .site-information {
+    padding: 24px 20px 30px;
   }
 }
 

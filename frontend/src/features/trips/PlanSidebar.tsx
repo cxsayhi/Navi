@@ -70,8 +70,8 @@ export function PlanSidebar({
       </div>
 
       <div className="sidebar-note">
-        <span>08</span>
-        <p>阶段八：自动验证三日计划、实时导航、滚动时间选择、多日总览与路线失效。</p>
+        <span>W</span>
+        <p>把想去的地方按日整理，让每一段旅程都有清晰的方向。</p>
       </div>
     </aside>
   )

@@ -93,7 +93,7 @@ export function TripWorkspace({
             <span style={{ width: `${completion}%` }} />
           </div>
           <p>{plan.dailyRoutes.length} / {plan.dayCount} 天已建立 · {pointCount} 个地点</p>
-          <div className="passport-stamp">STAGE 08</div>
+          <div className="passport-stamp">READY TO GO</div>
         </div>
       </header>
 

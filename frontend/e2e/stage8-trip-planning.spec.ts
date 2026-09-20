@@ -463,6 +463,74 @@ test.beforeEach(async ({ request }) => {
   await cleanupPlans(request)
 })
 
+test('正式版外壳：品牌、帮助、法律入口、键盘焦点与移动布局', async ({ page }) => {
+  await installGoogleMapsMock(page)
+  await installRouteOptionsMock(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+
+  const banner = page.getByRole('banner')
+  await expect(banner).toContainText('PLAN · MAP · GO')
+  await expect(page.getByText('BUILDING', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('STAGE 08', { exact: true })).toHaveCount(0)
+  await expect(page.getByText(/阶段八/)).toHaveCount(0)
+
+  const footer = page.getByRole('contentinfo')
+  const helpButton = footer.getByRole('button', { name: '使用帮助' })
+  await helpButton.focus()
+  await helpButton.click()
+  const helpDialog = page.getByRole('dialog', { name: '使用帮助' })
+  await expect(helpDialog).toContainText('创建一段旅程')
+  await expect(helpDialog.getByRole('button', { name: '关闭对话框' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(helpButton).toBeFocused()
+
+  await footer.getByRole('button', { name: '隐私政策' }).click()
+  await expect(page.getByRole('dialog', { name: '隐私政策' })).toContainText('Google Maps')
+  await page.keyboard.press('Escape')
+
+  await footer.getByRole('button', { name: '服务条款' }).click()
+  await expect(page.getByRole('dialog', { name: '服务条款' })).toContainText('路线仅供规划参考')
+  await page.keyboard.press('Escape')
+
+  await expect(footer.getByRole('link', { name: '意见反馈' })).toHaveAttribute(
+    'href',
+    'mailto:ChanceT66@outlook.com',
+  )
+  await expect(footer).toContainText('Wanderline 1.0.0')
+
+  const hasHorizontalOverflow = await page.evaluate(() => (
+    document.documentElement.scrollWidth > window.innerWidth
+  ))
+  expect(hasHorizontalOverflow).toBe(false)
+
+  const footerTextContrast = await footer.getByRole('button', { name: '使用帮助' }).evaluate((element) => {
+    const parseColor = (value: string) => value.match(/\d+/g)!.slice(0, 3).map(Number)
+    const luminance = (rgb: number[]) => rgb
+      .map((channel) => channel / 255)
+      .map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+      .reduce((total, channel, index) => total + channel * [0.2126, 0.7152, 0.0722][index], 0)
+    const foreground = luminance(parseColor(getComputedStyle(element).color))
+    const background = luminance(parseColor(getComputedStyle(document.body).backgroundColor))
+    return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05)
+  })
+  expect(footerTextContrast).toBeGreaterThanOrEqual(4.5)
+
+  await page.getByRole('button', { name: '创建旅游计划' }).click()
+  await page.getByLabel('计划名称').fill('移动端验收旅程')
+  await page.getByLabel('主要目的地').fill('上海')
+  await page.getByLabel('开始日期').fill('2027-09-20')
+  await page.getByLabel('结束日期').fill('2027-09-20')
+  await page.getByRole('button', { name: /创建计划/ }).click()
+  await expect(page.getByRole('heading', { name: '移动端验收旅程' })).toBeVisible()
+  await addPlace(page, '上海博物馆')
+  await addPlace(page, '外滩')
+  await page.getByRole('button', { name: '规划 上海博物馆 到 外滩 的导航' }).click()
+  await expect(page.getByRole('radiogroup', { name: '步行备选方案' })).toBeVisible()
+  await page.getByRole('button', { name: '预览全部路线' }).click()
+  await expect(page.getByRole('button', { name: /返回按日编辑/ })).toBeVisible()
+})
+
 test('阶段 8：三日计划、实时导航、总览与 Pin 变更', async ({ page }) => {
   await installGoogleMapsMock(page)
   await installRouteOptionsMock(page)

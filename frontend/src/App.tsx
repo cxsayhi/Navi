@@ -10,6 +10,7 @@ import type {
   TripPlanSummary,
 } from './api/types'
 import { Modal } from './components/Modal'
+import { SiteInformation, type SiteInformationKind } from './components/SiteInformation'
 import { ConfirmDelete } from './features/trips/ConfirmDelete'
 import { DailyRouteForm } from './features/trips/DailyRouteForm'
 import { EmptyWorkspace } from './features/trips/EmptyWorkspace'
@@ -47,6 +48,7 @@ function App() {
   const [planFormMode, setPlanFormMode] = useState<'create' | 'edit' | null>(null)
   const [routeForm, setRouteForm] = useState<DailyRoute | null | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null)
+  const [siteInformation, setSiteInformation] = useState<SiteInformationKind | null>(null)
 
   const refreshSummaries = useCallback(async () => {
     const nextPlans = await api.listTripPlans()
@@ -269,9 +271,9 @@ function App() {
             <small>行迹</small>
           </span>
         </a>
-        <div className="header-stage">
-          <span>BUILDING</span>
-          <strong>08 / 08</strong>
+        <div className="header-edition" aria-label="Wanderline 旅行规划">
+          <span>PLAN · MAP · GO</span>
+          <strong>TRAVEL PLANNER</strong>
         </div>
         <div className={`connection-pill connection-pill--${connection.status}`}>
           <span aria-hidden="true" />
@@ -325,9 +327,21 @@ function App() {
       </main>
 
       <footer className="site-footer">
-        <p>Wanderline / 行迹</p>
-        <p>{connection.info ? `${connection.info.service} · ${connection.info.version}` : 'Local travel archive'}</p>
+        <div className="footer-identity">
+          <strong>Wanderline / 行迹</strong>
+          <span>Wanderline {connection.info?.version ?? '1.0.0'} · 把想去的地方连成旅程</span>
+        </div>
+        <nav className="footer-navigation" aria-label="站点信息">
+          <button type="button" onClick={() => setSiteInformation('help')}>使用帮助</button>
+          <button type="button" onClick={() => setSiteInformation('privacy')}>隐私政策</button>
+          <button type="button" onClick={() => setSiteInformation('terms')}>服务条款</button>
+          <a href="mailto:ChanceT66@outlook.com">意见反馈</a>
+        </nav>
       </footer>
+
+      {siteInformation && (
+        <SiteInformation kind={siteInformation} onClose={() => setSiteInformation(null)} />
+      )}
 
       {planFormMode && (
         <Modal

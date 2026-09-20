@@ -30,6 +30,7 @@ class SystemControllerTest {
                 .andExpect(header().exists(RequestIdFilter.REQUEST_ID_HEADER))
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.status").value("READY"))
-                .andExpect(jsonPath("$.data.mapProvider").value("GOOGLE_MAPS"));
+                .andExpect(jsonPath("$.data.mapProvider").value("GOOGLE_MAPS"))
+                .andExpect(jsonPath("$.data.version").value("1.0.0"));
     }
 }

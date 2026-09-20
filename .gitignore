@@ -20,3 +20,6 @@ backend/target/
 .vscode/
 *.iml
 .DS_Store
+
+# doc
+temp/
