@@ -1,0 +1,51 @@
+name: Google Services Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: google-smoke
+  cancel-in-progress: false
+
+jobs:
+  google-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: google-smoke
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.1
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Pin npm
+        run: npm install --global npm@10.9.9
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Chrome
+        working-directory: frontend
+        run: npx playwright install --with-deps chrome
+      - name: Validate dedicated test secrets
+        env:
+          GOOGLE_MAPS_BROWSER_API_KEY: ${{ secrets.GOOGLE_MAPS_BROWSER_API_KEY }}
+          GOOGLE_MAPS_SERVER_API_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_API_KEY }}
+          GOOGLE_MAPS_MAP_ID: ${{ secrets.GOOGLE_MAPS_MAP_ID }}
+        run: node scripts/require-env.mjs GOOGLE_MAPS_BROWSER_API_KEY GOOGLE_MAPS_SERVER_API_KEY GOOGLE_MAPS_MAP_ID
+      - name: Run real Google smoke
+        working-directory: frontend
+        env:
+          GOOGLE_MAPS_BROWSER_API_KEY: ${{ secrets.GOOGLE_MAPS_BROWSER_API_KEY }}
+          GOOGLE_MAPS_SERVER_API_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_API_KEY }}
+          GOOGLE_MAPS_MAP_ID: ${{ secrets.GOOGLE_MAPS_MAP_ID }}
+        run: npm run test:google-smoke
