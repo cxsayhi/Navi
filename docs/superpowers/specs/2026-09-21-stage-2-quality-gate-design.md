@@ -2,13 +2,13 @@
 
 日期：2026-09-21
 
-状态：待用户审阅
+状态：已确认
 
 依据：`temp/go-live-readiness.md` 阶段 2
 
 ## 1. 背景
 
-Wanderline 已具备 39 项后端测试、前端 lint/build、10 项 Playwright E2E、Docker Compose 构建与本地浏览器验收，但尚未形成可在干净环境重复执行的持续集成门禁。2026-09-21 的 `npm audit` 报告 21 个高危、4 个中危问题；项目也缺少自动依赖/镜像扫描、SBOM、性能基线和受控的真实 Google API 冒烟测试。
+Wanderline 已具备 39 项后端测试、前端 lint/build、10 项 Playwright E2E、Docker Compose 构建与本地浏览器验收，但尚未形成可在干净环境重复执行的持续集成门禁。2026-09-21 复查时，`npm audit` 报告 3 个高危、2 个中危受影响包；项目也缺少自动依赖/镜像扫描、SBOM、性能基线和受控的真实 Google API 冒烟测试。
 
 阶段二的目标是让每次合并和版本发布都能产生可追踪的测试、扫描与构建证据，并在高危问题或关键回归出现时阻止发布。
 
