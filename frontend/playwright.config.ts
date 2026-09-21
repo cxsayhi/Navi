@@ -25,7 +25,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: './mvnw -q test-compile spring-boot:run -DskipTests -Dspring-boot.run.profiles=e2e -Dspring-boot.run.useTestClasspath=true -Dspring-boot.run.arguments=--server.port=8082',
+      command: "./mvnw -q test-compile spring-boot:run -DskipTests -Dspring-boot.run.profiles=e2e -Dspring-boot.run.useTestClasspath=true -Dspring-boot.run.additional-classpath-elements=target/test-classes '-Dspring-boot.run.arguments=--server.port=8082 --spring.main.sources=com.wanderline.navigation.E2eGoogleRoutesConfiguration'",
       cwd: '../backend',
       env: { WANDERLINE_CORS_ALLOWED_ORIGINS: 'http://127.0.0.1:5174' },
       url: 'http://127.0.0.1:8082/actuator/health',

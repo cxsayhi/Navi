@@ -1,12 +1,29 @@
 package com.wanderline.navigation;
 
+import com.wanderline.WanderlineApplication;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 
 import java.time.OffsetDateTime;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class E2eGoogleRoutesConfigurationTest {
+
+    @Test
+    void loadsAsAnExplicitE2eApplicationSource() {
+        var application = new SpringApplication(WanderlineApplication.class);
+        application.setAdditionalProfiles("e2e");
+        application.setWebApplicationType(WebApplicationType.NONE);
+        application.setSources(Set.of(E2eGoogleRoutesConfiguration.class.getName()));
+
+        try (var context = application.run()) {
+            assertThat(context.getBean(GoogleRoutesGateway.class))
+                    .isNotInstanceOf(GoogleRoutesClient.class);
+        }
+    }
 
     @Test
     void returnsADeterministicRouteWithoutAGoogleKey() {
