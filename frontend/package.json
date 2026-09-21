@@ -13,7 +13,8 @@
     "lint": "eslint . --max-warnings 0",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "test:e2e:stability": "playwright test --repeat-each=3"
+    "test:e2e:stability": "playwright test --repeat-each=3",
+    "test:google-smoke": "playwright test --config playwright.google.config.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
