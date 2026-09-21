@@ -75,6 +75,12 @@ export async function runPool(items, concurrency, operation) {
   return results
 }
 
+export function routePointIdsFromLatestWrite(results, dailyRouteId) {
+  const latest = results.findLast(({ ok }) => ok)
+  const route = latest?.data?.dailyRoutes?.find(({ id }) => id === dailyRouteId)
+  return route?.routePoints?.map(({ id }) => id) ?? []
+}
+
 export function assertThresholds(report, thresholds) {
   for (const [name, operation] of Object.entries(report.operations)) {
     if (operation.failures > 0) {
@@ -144,6 +150,7 @@ export async function runPerformanceSmoke(env = process.env) {
     const results = await runPool(Array.from({ length: count }), concurrency, operation)
     wallMs[name] += performance.now() - started
     samples[name].push(...results)
+    return results
   }
 
   try {
@@ -170,13 +177,22 @@ export async function runPerformanceSmoke(env = process.env) {
     do {
       await benchmark('list', config.readRequests, () => api('/api/trip-plans'))
       await benchmark('detail', config.readRequests, () => api(`/api/trip-plans/${planId}`))
-      await benchmark('write', config.writeRequests, () => api(
+      const writes = await benchmark('write', config.writeRequests, () => api(
         `/api/trip-plans/${planId}/daily-routes/${dailyRouteId}/route-points`,
         {
           method: 'POST',
           body: JSON.stringify({ googlePlaceId: `perf-place-${pointIndex++}` }),
         },
       ), 1)
+      for (const routePointId of routePointIdsFromLatestWrite(writes, dailyRouteId)) {
+        await requireSuccess(
+          await api(
+            `/api/trip-plans/${planId}/daily-routes/${dailyRouteId}/route-points/${routePointId}`,
+            { method: 'DELETE' },
+          ),
+          `remove route point ${routePointId}`,
+        )
+      }
       await benchmark('routes', config.routeRequests, () => api('/api/routes/compute', {
         method: 'POST',
         body: JSON.stringify({

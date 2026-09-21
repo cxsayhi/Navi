@@ -283,6 +283,18 @@ jobs:
         with:
           name: security-sbom
           path: release/sbom
+      - name: Record immutable build inputs
+        run: |
+          {
+            printf 'git_sha=%s\n' "$GITHUB_SHA"
+            printf 'java=%s\n' "$(java -version 2>&1 | sed -n '1p')"
+            printf 'maven=%s\n' "$(backend/mvnw --version | sed -n '1p')"
+            printf 'node=%s\n' "$(node --version)"
+            printf 'npm=%s\n' "$(npm --version)"
+            awk '/^FROM / { print "backend_base_" ++n "=" $2 }' backend/Dockerfile
+            awk '/^FROM / { print "frontend_base_" ++n "=" $2 }' frontend/Dockerfile
+            awk '$1 == "image:" { print "database_base=" $2 }' docker-compose.yml
+          } > release/build-info.txt
       - name: Assemble checksummed release artifact
         run: |
           cp backend/target/wanderline-api-*.jar "release/wanderline-api-${GITHUB_SHA}.jar"

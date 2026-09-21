@@ -6,8 +6,19 @@ import {
   parsePositiveInteger,
   percentile,
   requestJson,
+  routePointIdsFromLatestWrite,
   runPool,
 } from './performance-smoke.mjs'
+
+test('finds written points to remove before the next soak iteration', () => {
+  const ids = routePointIdsFromLatestWrite([
+    { ok: true, data: { dailyRoutes: [{ id: 7, routePoints: [{ id: 12 }] }] } },
+    { ok: true, data: { dailyRoutes: [{ id: 7, routePoints: [{ id: 12 }, { id: 13 }] }] } },
+    { ok: false, data: null },
+  ], 7)
+
+  assert.deepEqual(ids, [12, 13])
+})
 
 test('computes nearest-rank percentiles', () => {
   assert.equal(percentile([40, 10, 30, 20], 0.95), 40)
