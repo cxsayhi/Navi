@@ -24,3 +24,6 @@ backend/target/
 
 # doc
 temp/
+
+# Generated quality-gate reports
+artifacts/
