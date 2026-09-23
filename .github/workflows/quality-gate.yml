@@ -163,6 +163,7 @@ jobs:
           format: sarif
           output: artifacts/security/filesystem.sarif
           severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
           exit-code: '1'
       - name: Upload repository SARIF
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
@@ -179,6 +180,7 @@ jobs:
           format: sarif
           output: artifacts/security/backend.sarif
           severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
           exit-code: '1'
       - name: Upload backend SARIF
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
@@ -195,6 +197,7 @@ jobs:
           format: sarif
           output: artifacts/security/frontend.sarif
           severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
           exit-code: '1'
       - name: Upload frontend SARIF
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
