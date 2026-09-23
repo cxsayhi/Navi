@@ -1,0 +1,313 @@
+name: Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-gate-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.1
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Pin npm
+        run: npm install --global npm@10.9.9
+      - name: Backend tests
+        working-directory: backend
+        run: ./mvnw -B test
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Frontend lint
+        working-directory: frontend
+        run: npm run lint
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build
+      - name: Validate Compose
+        run: docker compose config --quiet
+      - name: Upload verification diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verify-diagnostics-${{ github.sha }}
+          path: |
+            backend/target/surefire-reports/
+            frontend/dist/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e-stability:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.1
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Pin npm
+        run: npm install --global npm@10.9.9
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Chrome
+        working-directory: frontend
+        run: npx playwright install --with-deps chrome
+      - name: Run three-pass E2E
+        working-directory: frontend
+        run: npm run test:e2e:stability
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-diagnostics-${{ github.sha }}
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  performance:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.1
+      - name: Pin npm
+        run: npm install --global npm@10.9.9
+      - name: Test performance primitives
+        run: node --test scripts/performance-smoke.test.mjs
+      - name: Run performance gate
+        run: scripts/run-performance-smoke.sh
+      - name: Upload performance diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: performance-${{ github.sha }}
+          path: artifacts/performance/
+          if-no-files-found: warn
+          retention-days: 14
+
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.1
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Pin npm
+        run: npm install --global npm@10.9.9
+      - name: Audit frontend dependencies
+        working-directory: frontend
+        run: |
+          npm ci
+          npm audit --audit-level=high
+      - name: Build release images
+        run: |
+          docker build --tag "wanderline-backend:${GITHUB_SHA}" backend
+          docker build --tag "wanderline-frontend:${GITHUB_SHA}" frontend
+      - name: Prepare security output
+        run: mkdir -p artifacts/security
+      - name: Scan repository
+        id: scan-fs
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: artifacts/security/filesystem.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          exit-code: '1'
+      - name: Upload repository SARIF
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
+        with:
+          sarif_file: artifacts/security/filesystem.sarif
+          category: trivy-filesystem
+      - name: Scan backend image
+        id: scan-backend
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: wanderline-backend:${{ github.sha }}
+          format: sarif
+          output: artifacts/security/backend.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          exit-code: '1'
+      - name: Upload backend SARIF
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
+        with:
+          sarif_file: artifacts/security/backend.sarif
+          category: trivy-backend
+      - name: Scan frontend image
+        id: scan-frontend
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: wanderline-frontend:${{ github.sha }}
+          format: sarif
+          output: artifacts/security/frontend.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          exit-code: '1'
+      - name: Upload frontend SARIF
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
+        with:
+          sarif_file: artifacts/security/frontend.sarif
+          category: trivy-frontend
+      - name: Generate repository SBOM
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: cyclonedx
+          output: artifacts/security/filesystem.cdx.json
+      - name: Generate backend SBOM
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: wanderline-backend:${{ github.sha }}
+          format: cyclonedx
+          output: artifacts/security/backend.cdx.json
+      - name: Generate frontend SBOM
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: wanderline-frontend:${{ github.sha }}
+          format: cyclonedx
+          output: artifacts/security/frontend.cdx.json
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: security-reports-${{ github.sha }}
+          path: artifacts/security/*.sarif
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload security SBOM
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: security-sbom
+          path: artifacts/security/*.cdx.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Enforce vulnerability gate
+        if: always()
+        env:
+          FILESYSTEM_SCAN: ${{ steps.scan-fs.outcome }}
+          BACKEND_SCAN: ${{ steps.scan-backend.outcome }}
+          FRONTEND_SCAN: ${{ steps.scan-frontend.outcome }}
+        run: |
+          if [[ "$FILESYSTEM_SCAN" == failure || "$BACKEND_SCAN" == failure || "$FRONTEND_SCAN" == failure ]]; then
+            exit 1
+          fi
+
+  release-artifacts:
+    needs: [verify, e2e-stability, performance, security]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.1
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Pin npm
+        run: npm install --global npm@10.9.9
+      - name: Build backend artifact
+        working-directory: backend
+        run: ./mvnw -B -DskipTests package
+      - name: Build frontend artifact
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Download security SBOM
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: security-sbom
+          path: release/sbom
+      - name: Record immutable build inputs
+        run: |
+          {
+            printf 'git_sha=%s\n' "$GITHUB_SHA"
+            printf 'java=%s\n' "$(java -version 2>&1 | sed -n '1p')"
+            printf 'maven=%s\n' "$(backend/mvnw --version | sed -n '1p')"
+            printf 'node=%s\n' "$(node --version)"
+            printf 'npm=%s\n' "$(npm --version)"
+            awk '/^FROM / { print "backend_base_" ++n "=" $2 }' backend/Dockerfile
+            awk '/^FROM / { print "frontend_base_" ++n "=" $2 }' frontend/Dockerfile
+            awk '$1 == "image:" { print "database_base=" $2 }' docker-compose.yml
+          } > release/build-info.txt
+      - name: Assemble checksummed release artifact
+        run: |
+          cp backend/target/wanderline-api-*.jar "release/wanderline-api-${GITHUB_SHA}.jar"
+          tar -C frontend -czf "release/wanderline-web-${GITHUB_SHA}.tar.gz" dist
+          cd release
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+      - name: Upload release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wanderline-${{ github.sha }}
+          path: release/
+          if-no-files-found: error
+          retention-days: 14

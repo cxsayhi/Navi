@@ -2,7 +2,7 @@ name: wanderline
 
 services:
   database:
-    image: postgres:17-alpine
+    image: postgres:17.11-alpine3.24@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     environment:
       POSTGRES_DB: ${WANDERLINE_DB_NAME:-wanderline}
       POSTGRES_USER: ${WANDERLINE_DB_USER:-wanderline}

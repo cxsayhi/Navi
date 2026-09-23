@@ -386,8 +386,10 @@ async function addPlace(page: Page, placeName: string) {
   await search.fill(placeName)
   await page.locator('.place-suggestions').getByRole('button', { name: new RegExp(placeName) }).click()
   await expect(page.locator('.place-preview-card')).toContainText(placeName)
-  await page.getByRole('button', { name: '加入路线' }).click()
-  await expect(search).toHaveValue('')
+  const addButton = page.getByRole('button', { name: '加入路线' })
+  await expect(addButton).toBeEnabled()
+  await addButton.click()
+  await expect(page.getByRole('button', { name: `编辑地点 ${placeName}` })).toBeVisible()
 }
 
 async function cleanupPlans(request: APIRequestContext) {

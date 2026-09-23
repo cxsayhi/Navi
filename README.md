@@ -55,9 +55,10 @@ Wanderline 是一个基于 Google Maps 的多日旅游路线规划网站。架�
 
 ## 环境要求
 
-- Node.js 22.12+
-- Java 21+
-- Maven 3.6.3+
+- Node.js 22.22.1（见 `.nvmrc`）
+- npm 10.9.9（见 `package.json` 的 `packageManager`）
+- Java 21
+- Maven Wrapper 3.9.16（无需全局安装 Maven）
 - Docker Desktop（用于 PostgreSQL 或完整容器运行）
 
 ## 本地开发
@@ -129,7 +130,7 @@ docker compose up -d database
 
 ```bash
 cd backend
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 后端地址：`http://localhost:8080`
@@ -150,7 +151,7 @@ mvn spring-boot:run
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -169,13 +170,21 @@ docker compose up --build
 ## 验证命令
 
 ```bash
-cd backend && mvn test
-cd frontend && npm run lint && npm run build
-cd frontend && npm run test:e2e
+cd backend && ./mvnw -B test
+cd ../frontend && npm ci && npm audit --audit-level=high
+npm run lint && npm run build && npm run test:e2e:stability
+cd ..
+node --test scripts/performance-smoke.test.mjs scripts/require-env.test.mjs
+scripts/run-performance-smoke.sh
 docker compose config --quiet
+docker compose build backend frontend
 ```
 
-`npm run test:e2e` 会自动启动使用 H2 内存数据库的后端和 Vite 前端，运行结束后自动停止，不会读写本地 PostgreSQL。测试需要 Java 21 和本机 Google Chrome，不需要 Google Maps 密钥；请确保 `8082` 和 `5174` 端口未被占用。测试代理明确指向隔离的 8082 后端。
+`npm run test:e2e:stability` 会把 10 个端到端场景连续执行 3 轮。测试自动启动使用 H2 内存数据库的后端、确定性的 Google Routes 测试替身和 Vite 前端，结束后自动停止，不会读写本地 PostgreSQL，也不会消耗 Google 配额。测试需要 Java 21 和本机 Google Chrome；请确保 `8082` 和 `5174` 端口未被占用。
+
+`scripts/run-performance-smoke.sh` 会在隔离的 `8083` 端口运行计划列表、详情、地点写入和路线计算的基础性能冒烟，报告写入 `artifacts/performance/report.json`。该目录是本地产物，不提交版本库。
+
+GitHub Actions 的 `quality-gate.yml` 在推送和拉取请求上执行构建、测试、Trivy 扫描、CycloneDX SBOM 和发布产物打包；`google-smoke.yml` 是使用受保护环境与专用密钥的手动真实 Google 冒烟。真实 Google 冒烟不属于普通本地验证，必须使用测试项目的受限密钥运行。
 
 完整的覆盖矩阵、验收结论与已知边界见 [`TEST_ACCEPTANCE.md`](./TEST_ACCEPTANCE.md)。
 

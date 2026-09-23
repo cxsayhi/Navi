@@ -20,6 +20,10 @@ backend/target/
 .vscode/
 *.iml
 .DS_Store
+.worktrees/
 
 # doc
 temp/
+
+# Generated quality-gate reports
+artifacts/
